@@ -1,189 +1,39 @@
-#include <boost/tokenizer.hpp>
 #include <string>
 #include <iostream>
 #include <sstream>
 #include <string.h>
 #include <vector>
-
-#define NMEAPARSER_MAX_SENTENCE_LENGTH 255 //MAX Sentence Length in bytes
-#define NMEAPARSER_MAX_TOKENS          24  //Max number of data fields in one GPS Sentence
-
-typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
-
-enum Nmea0183Frames {
-	NMEAPARSER_GPGGA_ID = 0,
-	NMEAPARSER_GPRMC_ID,
-	NMEAPARSER_GPGSV_ID,
-	NMEAPARSER_GPTXT_ID,
-	NMEAPARSER_GPVTG_ID,
-	NMEAPARSER_GPGSA_ID,
-	NMEAPARSER_GPGLL_ID,
-	NMEAPARSER_GPZDA_ID,
-	NMEAPARSER_MAX_SENTENCES
-};
-
-enum GgaFixQuality {
-		GGA_FIX_INV = 0,
-		GGA_FIX_SPS,
-		GGA_FIX_DGPS,
-		GGA_FIX_PPS,
-		GGA_FIX_RTK,
-		GGA_FIX_FRTK,
-		GGA_FIX_EST,
-		GGA_FIX_MAN,
-		Gga_Fix_SIM,
-		Gga_FIX_TOT
-};
-
-const char * Nmea0183FramesHdr[NMEAPARSER_MAX_SENTENCES]={
-	"$GPGGA",
-	"$GPRMC",
-	"$GPGSV",
-	"$GPTXT",
-	"$GPVTG",
-	"$GPGSA",
-	"$GPGLL",
-	"$GPZDA",
-};
-
-/** GGA Sentence structure */
-typedef struct {
-	double        latitude;
-	double        longitude;
-	double        altitude;
-	unsigned long time;
-	int           satellites;
-	int           quality;
-	double        hdop;
-	double        geoid;
-}nmeaparser_gga_sentence;
-
-/** RMC Sentence structure */
-typedef struct {
-	unsigned long time;
-	char          warn;
-	double        latitude;
-	double        longitude;
-	double        speed;
-	double        course;
-	unsigned long date;
-	double        magvar;
-}nmeap_rmc_sentence;
-
-/** GSV Sentence structure */
-typedef struct {
-	unsigned int nomsg;
-	unsigned int msgno;
-	unsigned int  nosv;
-	struct {
-		int 	sv;
-		int     elevation;
-		int     azimuth;
-		int 	cno;
-	}satellite[64];
-}nmeaparser_gsv_sentence;
-
-/** TXT Sentence structure */
-typedef struct {
-	int 	number;
-	struct {
-		int		total;
-		int		number;
-		int		severity;
-		char	message[255];
-	}id[16];
-}nmeaparser_txt_sentence;
-
-/** VTG Sentence structure */
-typedef struct {
-	double        course;
-	double        speedkn;
-	double        speedkm;
-}nmeaparser_vtg_sentence;
-
-/** GSA Sentence structure */
-typedef struct {
-	char 	smode;
-	int 	fs;
-	int 	sv[12];
-	float	pdop;
-	float hdop;
-	float vdop;
-}nmeaparser_gsa_sentence;
+#include <cassert>
+#include "nmeaparser.h"
+#include "nmeautils.h"
 
 
-int ConvertHexStrToInt(std::string csval)
-{
-	int iRes = 0;
-	std::stringstream cs;
-	cs << std::hex << csval;
-	cs >> iRes;
-	return iRes;
-}
-
-int ConvertStrToInt(std::string csval)
-{
-	int iRes = 0;
-	std::stringstream cs(csval);
-	cs >> iRes;
-	return iRes;
-}
-
-double ConvertStrToDouble(std::string csval)
-{
-	double iRes = 0;
-	std::stringstream cs(csval);
-	cs >> iRes;
-	return iRes;
-}
-
-int CalculateXoRCheckSum(const char * Sentence, int size)
-{
-	int iXorCS = 0;
-	for(int i = 0; i < size; i++)
-		iXorCS ^= Sentence[i];
-	return iXorCS;
-}
-
-void ParseGGASentence(std::vector<std::string> &GgaValidData)
+void ParseGGASentence(std::vector<std::string> &GgaValidData, nmeaparser_gga_sentence &gga_data)
 {
 	//$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47
 	static int i = 1;
-	std::string time = GgaValidData[i];
-	std::cout << "Time : " << time << std::endl;
+	gga_data.time = ConvertStrToInt(GgaValidData[i]);
+
 	i++;
-	std::string latitude =  GgaValidData[i];
-	std::cout << "Latitude : " << latitude << std::endl;
+	gga_data.latitude =  ConvertStrToLat(GgaValidData[i],GgaValidData[i+1]);
+	
+	i+=2;
+	gga_data.longitude = ConvertStrToLon(GgaValidData[i],GgaValidData[i+1]);
+
+	i+=2;
+	gga_data.quality = ConvertStrToInt(GgaValidData[i]);
+
 	i++;
-	std::string latitudeDir =  GgaValidData[i];
-	std::cout << "LatitudeDir : " << latitudeDir << std::endl;
+	gga_data.satellites = ConvertStrToInt(GgaValidData[i]);
+
 	i++;
-	std::string longitude = GgaValidData[i];
-	std::cout << "Longitude : " << longitude << std::endl;
+	gga_data.hdop = ConvertStrToDouble(GgaValidData[i]);
+
 	i++;
-	std::string longitudeDir = GgaValidData[i];
-	std::cout << "LongitudeDir : " << longitudeDir << std::endl;
-	i++;
-	int GgaFix = ConvertStrToInt(GgaValidData[i]);
-	std::cout << "Fix : " << GgaFix << std::endl;
-	i++;
-	int GgaSatNb = ConvertStrToInt(GgaValidData[i]);
-	std::cout << "Nb of Satellites : " << GgaSatNb << std::endl;
-	i++;
-	double hdop = ConvertStrToDouble(GgaValidData[i]);
-	std::cout << "hdop : " << hdop << std::endl;
-	i++;
-	double altitude = ConvertStrToDouble(GgaValidData[i]);
-	std::cout << "Altitude : " << altitude << std::endl;
-	i++;
-	std::string AltUnit = GgaValidData[i];
-	std::cout << "AltUnit : " << AltUnit << std::endl;
-	i++;
-	double Geoid = ConvertStrToDouble(GgaValidData[i]);
-	std::cout << "Geoid : " << Geoid << std::endl;
-	i++;
-	std::string geoidUnit = GgaValidData[i];
-	std::cout << "AltUnit : " << geoidUnit << std::endl;
+	gga_data.altitude = ConvertDistUnits(GgaValidData[i], GgaValidData[i+1]);
+
+	i+=2;
+	gga_data.geoid = ConvertDistUnits(GgaValidData[i], GgaValidData[i+1]);
 }
 
 void ParseRMCSentence(std::vector<std::string> &GgaValidData)
@@ -211,7 +61,7 @@ void ParseNmea0183Sentence(std::string GpsFrameData)
 
 	if(tokens[0] == Nmea0183FramesHdr[NMEAPARSER_GPGGA_ID]) {
 		std::cout << "GGA Frame Found" << std::endl;
-		ParseGGASentence(tokens);
+		ParseGGASentence(tokens, gga_data);
 	}
 	if(tokens[0] == Nmea0183FramesHdr[NMEAPARSER_GPRMC_ID]) {
 		std::cout << "RMC Frame Found" << std::endl;
