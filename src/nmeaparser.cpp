@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <string.h>
+#include <vector>
 
 #define NMEAPARSER_MAX_SENTENCE_LENGTH 255 //MAX Sentence Length in bytes
 #define NMEAPARSER_MAX_TOKENS          24  //Max number of data fields in one GPS Sentence
@@ -19,6 +20,19 @@ enum Nmea0183Frames {
 	NMEAPARSER_GPGLL_ID,
 	NMEAPARSER_GPZDA_ID,
 	NMEAPARSER_MAX_SENTENCES
+};
+
+enum GgaFixQuality {
+		GGA_FIX_INV = 0,
+		GGA_FIX_SPS,
+		GGA_FIX_DGPS,
+		GGA_FIX_PPS,
+		GGA_FIX_RTK,
+		GGA_FIX_FRTK,
+		GGA_FIX_EST,
+		GGA_FIX_MAN,
+		Gga_Fix_SIM,
+		Gga_FIX_TOT
 };
 
 const char * Nmea0183FramesHdr[NMEAPARSER_MAX_SENTENCES]={
@@ -131,19 +145,78 @@ int CalculateXoRCheckSum(const char * Sentence, int size)
 	return iXorCS;
 }
 
+void ParseGGASentence(std::vector<std::string> &GgaValidData)
+{
+	//$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47
+	static int i = 1;
+	std::string time = GgaValidData[i];
+	std::cout << "Time : " << time << std::endl;
+	i++;
+	std::string latitude =  GgaValidData[i];
+	std::cout << "Latitude : " << latitude << std::endl;
+	i++;
+	std::string latitudeDir =  GgaValidData[i];
+	std::cout << "LatitudeDir : " << latitudeDir << std::endl;
+	i++;
+	std::string longitude = GgaValidData[i];
+	std::cout << "Longitude : " << longitude << std::endl;
+	i++;
+	std::string longitudeDir = GgaValidData[i];
+	std::cout << "LongitudeDir : " << longitudeDir << std::endl;
+	i++;
+	int GgaFix = ConvertStrToInt(GgaValidData[i]);
+	std::cout << "Fix : " << GgaFix << std::endl;
+	i++;
+	int GgaSatNb = ConvertStrToInt(GgaValidData[i]);
+	std::cout << "Nb of Satellites : " << GgaSatNb << std::endl;
+	i++;
+	double hdop = ConvertStrToDouble(GgaValidData[i]);
+	std::cout << "hdop : " << hdop << std::endl;
+	i++;
+	double altitude = ConvertStrToDouble(GgaValidData[i]);
+	std::cout << "Altitude : " << altitude << std::endl;
+	i++;
+	std::string AltUnit = GgaValidData[i];
+	std::cout << "AltUnit : " << AltUnit << std::endl;
+	i++;
+	double Geoid = ConvertStrToDouble(GgaValidData[i]);
+	std::cout << "Geoid : " << Geoid << std::endl;
+	i++;
+	std::string geoidUnit = GgaValidData[i];
+	std::cout << "AltUnit : " << geoidUnit << std::endl;
+}
+
+void ParseRMCSentence(std::vector<std::string> &GgaValidData)
+{
+	//$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A
+			//123519       Fix taken at 12:35:19 UTC
+			//A            Status A=active or V=Void.
+			//4807.038,N   Latitude 48 deg 07.038' N
+			//01131.000,E  Longitude 11 deg 31.000' E
+			//022.4        Speed over the ground in knots
+			//084.4        Track angle in degrees True
+			//230394       Date - 23rd of March 1994
+			//003.1,W      Magnetic Variation
+}
+
 void ParseNmea0183Sentence(std::string GpsFrameData)
 {
 	boost::char_separator<char> DecSep{","};
+	std::vector<std::string> tokens;
 	tokenizer GpsContent{GpsFrameData, DecSep};
-	auto parser = GpsContent.begin();
-	std::string NmeaType = *parser;
-	if(NmeaType == Nmea0183FramesHdr[NMEAPARSER_GPGGA_ID])
-		std::cout << "GGA Frame Found" << std::endl;
-
-	/*for (tokenizer::iterator tok_iter = GpsContent.begin();
+	for (tokenizer::iterator tok_iter = GpsContent.begin();
 		tok_iter != GpsContent.end(); ++tok_iter) {
-		std::cout << *tok_iter << std::endl;
-	}*/
+		tokens.push_back(*tok_iter);
+	}
+
+	if(tokens[0] == Nmea0183FramesHdr[NMEAPARSER_GPGGA_ID]) {
+		std::cout << "GGA Frame Found" << std::endl;
+		ParseGGASentence(tokens);
+	}
+	if(tokens[0] == Nmea0183FramesHdr[NMEAPARSER_GPRMC_ID]) {
+		std::cout << "RMC Frame Found" << std::endl;
+		ParseRMCSentence(tokens);
+	}
 }
 
 bool isValidHeaderWeCare(std::string s)
@@ -177,7 +250,7 @@ bool isValidSentenceChecksum(std::string s, std::string &GpsData)
 
 int main(int argc, char *argv[])
 {
-	std::string s("$GPGGA,064036.289,4836.5375,N,00740.9373,E,1,04,3.2,200.2,M,,,,0000*0E");
+	std::string s("$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47");
 	if(!isValidHeaderWeCare(s))
 	return 1;
 	std::string GpsFrame;
