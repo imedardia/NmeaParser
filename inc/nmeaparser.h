@@ -38,17 +38,6 @@ enum RmcDataValid {
 	RMC_DATA_VOID   = 'V'
 };
 
-const char * Nmea0183FramesHdr[NMEAPARSER_MAX_SENTENCES]={
-	"$GPGGA",
-	"$GPRMC",
-	"$GPGSV",
-	"$GPTXT",
-	"$GPVTG",
-	"$GPGSA",
-	"$GPGLL",
-	"$GPZDA",
-};
-
 /** GGA Sentence structure */
 typedef struct {
 	double        latitude;
@@ -60,8 +49,6 @@ typedef struct {
 	double        hdop;
 	double        geoid;
 }nmeaparser_gga_sentence;
-
-nmeaparser_gga_sentence gga_data;
 
 /** RMC Sentence structure */
 typedef struct {
@@ -124,7 +111,9 @@ typedef struct {
 	nmea_callback NmeapCb;
 }NmeaParserCallback;
 
-std::vector<NmeaParserCallback> NmeaParsers;
+bool addNmea0183Parser(nmea_callback ParserCb, std::string NmeaType);
+void ParseNmea0183Sentence(std::string GpsFrameData);
+bool isValidSentenceChecksum(std::string s, std::string &GpsData);
 
 
 #endif

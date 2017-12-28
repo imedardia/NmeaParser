@@ -7,8 +7,20 @@
 #include "nmeaparser.h"
 #include "nmeautils.h"
 
+std::vector<NmeaParserCallback> NmeaParsers;
 
-void ParseGGASentence(std::vector<std::string> &GgaValidData, NmeaParserCallback * ggaCallback)
+const char * Nmea0183FramesHdr[NMEAPARSER_MAX_SENTENCES]={
+	"$GPGGA",
+	"$GPRMC",
+	"$GPGSV",
+	"$GPTXT",
+	"$GPVTG",
+	"$GPGSA",
+	"$GPGLL",
+	"$GPZDA",
+};
+
+static void ParseGGASentence(std::vector<std::string> &GgaValidData, NmeaParserCallback * ggaCallback)
 {
 	//$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47
 	std::cout << "New GGA Frame Found" << std::endl;
@@ -40,7 +52,7 @@ void ParseGGASentence(std::vector<std::string> &GgaValidData, NmeaParserCallback
 	ggaCallback->NmeapCb(ggaCallback->NmeaType, &gga_data);
 }
 
-void ParseRMCSentence(std::vector<std::string> &RmcValidData, NmeaParserCallback * RmcCallback)
+static void ParseRMCSentence(std::vector<std::string> &RmcValidData, NmeaParserCallback * RmcCallback)
 {
 	std::cout << "New RMC Frame Found" << std::endl;
 	//$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A
@@ -106,19 +118,6 @@ void ParseNmea0183Sentence(std::string GpsFrameData)
 	}
 }
 
-bool isValidHeaderWeCare(std::string s)
-{
-	boost::char_separator<char> sep{","};
-	tokenizer tokens{s, sep};
-	auto parser = tokens.begin();
-	std::string SentType = *parser;
-	for(int i = 0; i < NMEAPARSER_MAX_SENTENCES; i++) {
-		if(SentType == Nmea0183FramesHdr[i])
-			return true;
-	}
-	return false;
-}
-
 bool isValidSentenceChecksum(std::string s, std::string &GpsData)
 {
 	boost::char_separator<char> sep{"*"};
@@ -135,7 +134,7 @@ bool isValidSentenceChecksum(std::string s, std::string &GpsData)
 		return false;
 }
 
-bool isValidNmeapParser(std::string NmeaType)
+static bool isValidNmeapParser(std::string NmeaType)
 {
 	for(int i = 0; i < NMEAPARSER_MAX_SENTENCES; i++) {
 		if(NmeaType == Nmea0183FramesHdr[i]) {
@@ -156,54 +155,4 @@ bool addNmea0183Parser(nmea_callback ParserCb, std::string NmeaType)
 	NmeaTmpParser.NmeapCb = ParserCb;
 	NmeaParsers.push_back(NmeaTmpParser);
 	return true;
-}
-
-
-void gga_callback(std::string NmeaType, void * ggaStruct)
-{
-	nmeaparser_gga_sentence *gga = (nmeaparser_gga_sentence *)ggaStruct;
-	std::cout << "Time        = "  << gga->time << std::endl;
-	std::cout << "Latitude    = "  << gga->latitude << std::endl;
-	std::cout << "Longitude   = "  << gga->longitude << std::endl;
-	std::cout << "Quality     = "  << gga->quality << std::endl;
-	std::cout << "Satellites  = "  << gga->satellites << std::endl;
-	std::cout << "Altitude    = "  << gga->altitude << std::endl;
-	std::cout << "HDOP        = "  << gga->hdop << std::endl;
-	std::cout << "GEOID       = "  << gga->geoid << std::endl;
-}
-
-void rmc_callback(std::string NmeaType, void * rmcStruct)
-{
-	nmeap_rmc_sentence *rmc = (nmeap_rmc_sentence *)rmcStruct;
-	std::cout << "Time        = "  << rmc->time << std::endl;
-	std::cout << "Latitude    = "  << rmc->latitude << std::endl;
-	std::cout << "Longitude   = "  << rmc->longitude << std::endl;
-	std::cout << "Date        = "  << rmc->date << std::endl;
-	std::cout << "Warn        = "  << rmc->warn << std::endl;
-	std::cout << "Speed       = "  << rmc->speed << std::endl;
-	std::cout << "Course      = "  << rmc->course << std::endl;
-	std::cout << "MDEV        = "  << rmc->magvar << std::endl;
-}
-
-int main(int argc, char *argv[])
-{
-	std::string s("$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A");
-	if(!addNmea0183Parser(gga_callback, "$GPGGA")){
-		std::cout << "Cannot add a new NMEAP parser" << std::endl;
-		return 1;
-	}
-
-	if(!addNmea0183Parser(rmc_callback, "$GPRMC")){
-		std::cout << "Cannot add a new NMEAP parser" << std::endl;
-		return 1;
-	}
-	
-	std::string GpsFrame;
-	if(isValidSentenceChecksum(s, GpsFrame)) {
-		std::cout << "Correct NMEA0183 Sentence" << std::endl;
-		ParseNmea0183Sentence(GpsFrame);
-	}else
-		std::cout << "Bad NMEA0183 Sentence" << std::endl;
-
-	return 0;
 }
