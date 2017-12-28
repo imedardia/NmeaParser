@@ -33,6 +33,11 @@ enum GgaFixQuality {
 	Gga_FIX_TOT
 };
 
+enum RmcDataValid {
+	RMC_DATA_ACTIVE = 'A',
+	RMC_DATA_VOID   = 'V'
+};
+
 const char * Nmea0183FramesHdr[NMEAPARSER_MAX_SENTENCES]={
 	"$GPGGA",
 	"$GPRMC",
@@ -110,5 +115,16 @@ typedef struct {
 	float hdop;
 	float vdop;
 }nmeaparser_gsa_sentence;
+
+
+typedef void (*nmea_callback)(std::string NmeaType, void * NmeaStruct);
+
+typedef struct {
+	std::string NmeaType;
+	nmea_callback NmeapCb;
+}NmeaParserCallback;
+
+std::vector<NmeaParserCallback> NmeaParsers;
+
 
 #endif
