@@ -54,6 +54,7 @@ double ConvertStrToLatLon(std::string Value, std::string Dir)
 		iDir = (Dir == "N")? 1: -1;
 	if(Conv == CONV_LON)
 		iDir = (Dir == "E")? 1: -1;
+
 	dLatLon = ConvertStrToDouble(Value);
     //extract the degree part
     iDeg = (int)(dLatLon / 100.0);
@@ -75,7 +76,14 @@ double ConvertStrToLon(std::string Value, std::string Dir)
 	return ConvertStrToLatLon<CONV_LON>(Value, Dir);
 }
 
-double ConvertDistUnits(std::string Value, std::string Units)
+double ConvertStrToMagnDev(std::string Value, std::string Dir)
+{
+	int iDir = (Dir == "E")? 1: -1;
+	double MagnVar = ConvertStrToDouble(Value)*iDir;
+	return MagnVar;
+}
+
+double ConvertDoubleDistUnits(std::string Value, std::string Units)
 {
 	if(Value.length() == 0)
 		return 0.0;
@@ -83,5 +91,5 @@ double ConvertDistUnits(std::string Value, std::string Units)
 	if(Units == "M")//Metric Units in Meters
 		return dRawVal;
 	else //Empiric Units in Feets
-		return (dRawVal * 3.2808399);
+		return (dRawVal * FeetsInMeter);
 }

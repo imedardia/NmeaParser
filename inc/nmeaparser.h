@@ -5,6 +5,8 @@
 
 #define NMEAPARSER_MAX_SENTENCE_LENGTH 255 //MAX Sentence Length in bytes
 #define NMEAPARSER_MAX_TOKENS          24  //Max number of data fields in one GPS Sentence
+#define MAX_SATELLITES_IN_VIEW         64  //Max Number of Stallites In view
+#define MAX_SATELLITES_USED_FIX        12  //Max Number of Stallites Used For Fix
 
 typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
 
@@ -68,11 +70,11 @@ typedef struct {
 	unsigned int msgno;
 	unsigned int  nosv;
 	struct {
-		int 	sv;
+		int 	prn;
 		int     elevation;
 		int     azimuth;
-		int 	cno;
-	}satellite[64];
+		int 	snr;
+	}satellite[MAX_SATELLITES_IN_VIEW];
 }nmeaparser_gsv_sentence;
 
 /** TXT Sentence structure */
@@ -82,7 +84,7 @@ typedef struct {
 		int		total;
 		int		number;
 		int		severity;
-		char	message[255];
+		char	message[NMEAPARSER_MAX_SENTENCE_LENGTH];
 	}id[16];
 }nmeaparser_txt_sentence;
 
@@ -97,7 +99,7 @@ typedef struct {
 typedef struct {
 	char 	smode;
 	int 	fs;
-	int 	sv[12];
+	int 	sv[MAX_SATELLITES_USED_FIX];
 	float	pdop;
 	float hdop;
 	float vdop;
