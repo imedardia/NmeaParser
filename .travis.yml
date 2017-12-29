@@ -1,0 +1,24 @@
+language: cpp
+
+compiler:
+  - clang
+  - g++
+
+install: export CXX="g++-5"
+     
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+      - george-edison55-precise-backports
+      - boost-latest
+    packages:
+      - g++-5
+      - libboost1.55-all-dev
+      - cmake-data
+      - cmake
+      
+notifications:
+ email:
+  on_success: never
+  on_failure: always
