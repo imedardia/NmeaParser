@@ -8,6 +8,7 @@
 #include "nmeautils.h"
 
 std::vector<NmeaParserCallback> NmeaParsers;
+std::vector<std::string> tokens;
 
 const char * Nmea0183FramesHdr[NMEAPARSER_MAX_SENTENCES]={
 	"$GPGGA",
@@ -23,7 +24,6 @@ const char * Nmea0183FramesHdr[NMEAPARSER_MAX_SENTENCES]={
 static void ParseGGASentence(std::vector<std::string> &GgaValidData, NmeaParserCallback * ggaCallback)
 {
 	//$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47
-	std::cout << "New GGA Frame Found" << std::endl;
 	nmeaparser_gga_sentence gga_data;
 	int i = 1;
 	gga_data.time = ConvertStrToInt(GgaValidData[i]);
@@ -48,13 +48,11 @@ static void ParseGGASentence(std::vector<std::string> &GgaValidData, NmeaParserC
 
 	i+=2;
 	gga_data.geoid = ConvertDistUnits(GgaValidData[i], GgaValidData[i+1]);
-	//memcpy(ggaCallback->NmeaDataStruct,(void*)&gga_data, sizeof(gga_data));
 	ggaCallback->NmeapCb(ggaCallback->NmeaType, &gga_data);
 }
 
 static void ParseRMCSentence(std::vector<std::string> &RmcValidData, NmeaParserCallback * RmcCallback)
 {
-	std::cout << "New RMC Frame Found" << std::endl;
 	//$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A
 			//123519       Fix taken at 12:35:19 UTC
 			//A            Status A=active or V=Void.
@@ -89,16 +87,12 @@ static void ParseRMCSentence(std::vector<std::string> &RmcValidData, NmeaParserC
 	i++;
 	rmc_data.magvar = ConvertStrToLon(RmcValidData[i], RmcValidData[i+1]);
 
-	//memcpy(RmcCallback->NmeaDataStruct,(void*)&rmc_data, sizeof(rmc_data));
 	RmcCallback->NmeapCb(RmcCallback->NmeaType, &rmc_data);
-
-
 }
 
 void ParseNmea0183Sentence(std::string GpsFrameData)
 {
 	boost::char_separator<char> DecSep{","};
-	std::vector<std::string> tokens;
 	tokenizer GpsContent{GpsFrameData, DecSep};
 	for (tokenizer::iterator tok_iter = GpsContent.begin();
 		tok_iter != GpsContent.end(); ++tok_iter) {
@@ -138,7 +132,6 @@ static bool isValidNmeapParser(std::string NmeaType)
 {
 	for(int i = 0; i < NMEAPARSER_MAX_SENTENCES; i++) {
 		if(NmeaType == Nmea0183FramesHdr[i]) {
-			std::cout << "valid nmeaparser found :" << NmeaType << std::endl;
 			return true;
 		}
 	}
