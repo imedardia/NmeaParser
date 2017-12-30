@@ -8,6 +8,8 @@
 
 int ConvertHexStrToInt(std::string csval)
 {
+	if(csval.empty())
+		return 0;
 	int iRes = 0;
 	std::stringstream cs;
 	cs << std::hex << csval;

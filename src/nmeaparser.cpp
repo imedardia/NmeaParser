@@ -23,7 +23,7 @@ const char * Nmea0183FramesHdr[NMEAPARSER_MAX_SENTENCES]={
 static void ParseGGASentence(std::vector<std::string> &GgaValidData, NmeaParserCallback * GgaCallback)
 {
 	//$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47
-	nmeaparser_gga_sentence gga_data;
+	static nmeaparser_gga_sentence gga_data;
 	int i = 1;
 	gga_data.time = ConvertStrToInt(GgaValidData[i]);
 
@@ -62,7 +62,7 @@ static void ParseRMCSentence(std::vector<std::string> &RmcValidData, NmeaParserC
 			//084.4        Track angle in degrees True
 			//230394       Date - 23rd of March 1994
 			//003.1,W      Magnetic Variation
-	nmeap_rmc_sentence rmc_data;
+	static nmeap_rmc_sentence rmc_data;
 	int i = 1;
 	rmc_data.time = ConvertStrToInt(RmcValidData[i]);
 
@@ -93,7 +93,7 @@ static void ParseRMCSentence(std::vector<std::string> &RmcValidData, NmeaParserC
 
 static void ParseGSASentence(std::vector<std::string> &GsaValidData, NmeaParserCallback * GsaCallback)
 {
-	nmeaparser_gsa_sentence gsa_data;
+	static nmeaparser_gsa_sentence gsa_data;
 	
 	int i = 1;
 	i++;
@@ -115,8 +115,8 @@ static void ParseGSVSentence(std::vector<std::string> &GsvValidData, NmeaParserC
       083          Azimuth, degrees
       46           SNR - higher is better
                    for up to 4 satellites per sentence */
-	nmeaparser_gsv_sentence gsv_data;
-	int i = 1, k = 0;
+	static nmeaparser_gsv_sentence gsv_data;
+	int i = 1;
 	gsv_data.nomsg = ConvertStrToInt(GsvValidData[i]);
 	i++;
 	gsv_data.msgno = ConvertStrToInt(GsvValidData[i]);
@@ -126,6 +126,7 @@ static void ParseGSVSentence(std::vector<std::string> &GsvValidData, NmeaParserC
 	//As we have up to 4 satellites per GSV Sentence
 	//We should calculate the satellites instances in current sentence
 	//Index starts always from 1 (not 0)
+	int k = 0;
 	if (gsv_data.nomsg == gsv_data.msgno) // Last index
 		k = (gsv_data.nosv - (( gsv_data.nomsg - 1) * 4))*4;
 	else
@@ -138,13 +139,17 @@ static void ParseGSVSentence(std::vector<std::string> &GsvValidData, NmeaParserC
 			gsv_data.satellite[j].snr       = 0;
 		}
 	}
+
 	for (int j = 0;j < k;j+=4) {
-		int prn        	                    = ConvertStrToInt(GsvValidData[i+j]);
-		gsv_data.satellite[prn].prn        	= ConvertStrToInt(GsvValidData[i+1+j]);
-		gsv_data.satellite[prn].elevation  	= ConvertStrToInt(GsvValidData[i+2+j]);
-		gsv_data.satellite[prn].azimuth 	= ConvertStrToInt(GsvValidData[i+3+j]);
-		gsv_data.satellite[prn].snr      	= ConvertStrToInt(GsvValidData[i+4+j]);
+		if(!(GsvValidData[i+j]).empty()) {
+			int prn        	                    = ConvertStrToInt(GsvValidData[i+j]);
+			gsv_data.satellite[prn].prn        	= prn;
+			gsv_data.satellite[prn].elevation  	= ConvertStrToInt(GsvValidData[i+1+j]);
+			gsv_data.satellite[prn].azimuth 	= ConvertStrToInt(GsvValidData[i+2+j]);
+			gsv_data.satellite[prn].snr      	= ConvertStrToInt(GsvValidData[i+3+j]);
+		}
 	}
+	
 	if(GsvCallback->NmeapCb != nullptr)
 		GsvCallback->NmeapCb(GsvCallback->NmeaType, &gsv_data);
 }
@@ -152,7 +157,8 @@ static void ParseGSVSentence(std::vector<std::string> &GsvValidData, NmeaParserC
 void ParseNmea0183Sentence(std::string GpsFrameData)
 {
 	std::cout << GpsFrameData << std::endl;
-	boost::char_separator<char> DecSep{","};
+	boost::char_separator<char> DecSep(",", 0, 
+            boost::keep_empty_tokens);
 	tokenizer GpsContent{GpsFrameData, DecSep};
 	std::vector<std::string> tokens;
 	for (tokenizer::iterator tok_iter = GpsContent.begin();
