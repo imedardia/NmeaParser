@@ -4,20 +4,23 @@
 #include <fstream>
 #include "nmeaPres.h"
 
-NmeaPres::NmeaPres(std::string NmeaPort, const unsigned long cuwBaudrate):
+NmeaPres::NmeaPres(std::string NmeaPort, const unsigned long culBaudrate):
 NmeaParser(),
 NmeaParserInit(false),
-ulBaudrate(0),
-NmeaSerialPort(std::string(""))
+ulBaudrate(culBaudrate),
+NmeaSerialPort(NmeaPort)
 {
-	std::cout << "NmeaParser CTOR" << std::endl;
+	std::cout << "NmeaPres CTOR" << std::endl;
+	std::cout << "NmeaPort : " << NmeaSerialPort
+	          << " "<< "Baudrate : " << ulBaudrate << std::endl;
+
 	if(!NmeaInitParsers()) {
 		NmeaParserInit = true;
 	}
 }
 NmeaPres::~NmeaPres()
 {
-	std::cout << "NmeaParser DTOR" << std::endl;
+	std::cout << "NmeaPres DTOR" << std::endl;
 }
 
 int NmeaPres::NmeaInitParsers()

@@ -11,7 +11,7 @@
 class NmeaPres : public NmeaParser
 {
 	public:
-		NmeaPres(std::string NmeaPort, const unsigned long cuwBaudrate);
+		NmeaPres(std::string NmeaPort, const unsigned long culBaudrate);
 		~NmeaPres();
 		bool NmeaParserInit;
 
