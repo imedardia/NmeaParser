@@ -11,10 +11,11 @@
 #define MAX_TXT_MSG_NUMBER             16  //Max Number of GPTXT Messages
 
 typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
-typedef void (*nmea_callback)(std::string NmeaType, void * NmeaStruct);
+typedef void (*nmea_callback)(std::string NmeaType, void * NmeaStruct, void * context);
 typedef struct {
 	std::string NmeaType;
 	nmea_callback NmeapCb;
+	void * context;
 }NmeaParserCallback;
 
 enum Nmea0183Frames {
@@ -118,7 +119,7 @@ class NmeaParser: public NmeaUtils
 	public:
 		NmeaParser();
 		~NmeaParser();
-		bool addNmea0183Parser(nmea_callback ParserCb, std::string NmeaType);
+		bool addNmea0183Parser(nmea_callback ParserCb, std::string NmeaType, void * tmpcontext);
 		void ParseNmea0183Sentence(std::string GpsFrameData);
 		bool isValidSentenceChecksum(std::string s, std::string &GpsData);
 

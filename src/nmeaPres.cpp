@@ -2,111 +2,104 @@
 #include <sstream>
 #include <string>
 #include <fstream>
+#include <cstring>
 #include "nmeaPres.h"
 
 NmeaPres::NmeaPres(std::string NmeaPort, const unsigned long culBaudrate):
-NmeaParser(),
-NmeaParserInit(false),
 ulBaudrate(culBaudrate),
 NmeaSerialPort(NmeaPort)
 {
 	std::cout << "NmeaPres CTOR" << std::endl;
 	std::cout << "NmeaPort : " << NmeaSerialPort
 	          << " "<< "Baudrate : " << ulBaudrate << std::endl;
-
-	if(!NmeaInitParsers()) {
-		NmeaParserInit = true;
-	}
+	memset(&mGlobalGps, 0, sizeof(mGlobalGps));
 }
 NmeaPres::~NmeaPres()
 {
 	std::cout << "NmeaPres DTOR" << std::endl;
 }
 
-int NmeaPres::NmeaInitParsers()
+bool NmeaPres::NmeaInitParsers()
 {
-	if(!addNmea0183Parser(rmc_callback, "$GPRMC")){
+	if(!addNmea0183Parser(rmc_callback, "$GPRMC", &mGlobalGps)){
 		std::cerr << "Cannot add a new NMEAP parser" << std::endl;
-		return 1;
+		return false;
 	}
 	
-	if(!addNmea0183Parser(gga_callback, "$GPGGA")){
+	if(!addNmea0183Parser(gga_callback, "$GPGGA", &mGlobalGps)){
 		std::cerr << "Cannot add a new NMEAP parser" << std::endl;
-		return 1;
+		return false;
 	}
 	
-	if(!addNmea0183Parser(gsa_callback, "$GPGSA")){
+	if(!addNmea0183Parser(gsa_callback, "$GPGSA", &mGlobalGps)){
 		std::cerr << "Cannot add a new NMEAP parser" << std::endl;
-		return 1;
+		return false;
 	}
 	
-	if(!addNmea0183Parser(gsv_callback, "$GPGSV")){
+	if(!addNmea0183Parser(gsv_callback, "$GPGSV", &mGlobalGps)){
 		std::cerr << "Cannot add a new NMEAP parser" << std::endl;
-		return 1;
+		return false;
 	}
-	return 0;
+	return true;
 }
 
-void NmeaPres::gga_callback(std::string NmeaType, void * ggaStruct)
+void NmeaPres::gga_callback(std::string NmeaType, void * ggaStruct, void * context)
 {
 	static nmeaparser_gga_sentence *gga = (nmeaparser_gga_sentence *)ggaStruct;
 	if(gga != 0) {
-		std::cout << "Time           = "  << gga->time << std::endl;
-		std::cout << "Latitude       = "  << gga->latitude << std::endl;
-		std::cout << "Longitude      = "  << gga->longitude << std::endl;
-		std::cout << "Quality        = "  << gga->quality << std::endl;
-		std::cout << "Satellites     = "  << gga->satellites << std::endl;
-		std::cout << "Altitude       = "  << gga->altitude << std::endl;
-		std::cout << "HDOP           = "  << gga->hdop << std::endl;
-		std::cout << "GEOID          = "  << gga->geoid << std::endl;
+		((GlobalGpsStruct *)(context))->fAltitude = gga->altitude;
 	}
 }
 
-void NmeaPres::rmc_callback(std::string NmeaType, void * rmcStruct)
+void NmeaPres::rmc_callback(std::string NmeaType, void * rmcStruct, void * context)
 {
 	static nmeap_rmc_sentence *rmc   = (nmeap_rmc_sentence *)rmcStruct;
 	if(rmc != 0) {
-		std::cout << "Time        = "  << rmc->time << std::endl;
-		std::cout << "Latitude    = "  << rmc->latitude << std::endl;
-		std::cout << "Longitude   = "  << rmc->longitude << std::endl;
-		std::cout << "Date        = "  << rmc->date << std::endl;
-		std::cout << "Warn        = "  << rmc->warn << std::endl;
-		std::cout << "Speed       = "  << rmc->speed << std::endl;
-		std::cout << "Course      = "  << rmc->course << std::endl;
-		std::cout << "MDEV        = "  << rmc->magvar << std::endl;
+		((GlobalGpsStruct *)(context))->fLatitude = rmc->latitude;
+		((GlobalGpsStruct *)(context))->fLongitude = rmc->longitude;
+		((GlobalGpsStruct *)(context))->ulTime    = rmc->time;
+		((GlobalGpsStruct *)(context))->ulDate    = rmc->date;
+		((GlobalGpsStruct *)(context))->fSpeed    = rmc->speed;
+		((GlobalGpsStruct *)(context))->fCourse   = rmc->course;
 	}
 }
 
-void NmeaPres::gsa_callback(std::string NmeaType, void * gsaStruct)
+void NmeaPres::gsa_callback(std::string NmeaType, void * gsaStruct, void * context)
 {
 	static nmeaparser_gsa_sentence *gsa   = (nmeaparser_gsa_sentence *)gsaStruct;
 	if(gsa != 0) {
-		std::cout << "New GSA Struct" << std::endl;
+		((GlobalGpsStruct *)(context))->CeGpsFixMode  = gsa->fs;
+		((GlobalGpsStruct *)(context))->dilution.hdop = gsa->hdop;
+		((GlobalGpsStruct *)(context))->dilution.pdop = gsa->pdop;
+		((GlobalGpsStruct *)(context))->dilution.vdop = gsa->vdop;
 	}
 }
 
-void NmeaPres::gsv_callback(std::string NmeaType, void * gsvStruct)
+void NmeaPres::gsv_callback(std::string NmeaType, void * gsvStruct, void * context)
 {
 	static nmeaparser_gsv_sentence *gsv   = (nmeaparser_gsv_sentence *)gsvStruct;
 	if(gsv != 0) {
-		std::cout << "New GSV Struct"        << std::endl;
-		std::cout << "Nbre of Msg: "         << gsv->nomsg << std::endl;
-		std::cout << "Msg Instance: "        << gsv->msgno << std::endl;
-		std::cout << "Satellites In View : " << gsv->nosv << std::endl;
-		for(int i=0; i < MAX_SATELLITES_IN_VIEW ; i++) {
-			std::cout << "Sat PRN : " << gsv->satellite[i].prn << std::endl;
-			std::cout << "Sat Elev: " << gsv->satellite[i].elevation << std::endl;
-			std::cout << "Sat Azim: " << gsv->satellite[i].azimuth << std::endl;
-			std::cout << "Sat SNR : " << gsv->satellite[i].snr << std::endl;
+		if(gsv->msgno == gsv->nomsg) {
+			int snr = 0;
+			for(int i=0; i < MAX_SATELLITES_IN_VIEW ; i++) {
+				if(gsv->satellite[i].prn != 0)
+				   snr += gsv->satellite[i].snr;
+			}
+			((GlobalGpsStruct *)(context))->fGpsSNR = (double)((double)(snr * 1.0)/gsv->nosv);
 		}
 	}
+}
+
+void NmeaPres::getGpsGlobalStruct(GlobalGpsStruct &GlobalGps)
+{
+	GlobalGps = mGlobalGps;
 }
 
 
 int main(int argc, char *argv[])
 {
 	NmeaPres * NewParser = new NmeaPres("/dev/ttyO0", 115200);
-    if(!(NewParser->NmeaParserInit))
+    if(NewParser->NmeaInitParsers() == false)
 		delete NewParser;
 
 	std::string GpsFrame;
@@ -128,6 +121,21 @@ int main(int argc, char *argv[])
 			std::cerr << "Bad NMEA0183 Sentence" << std::endl;
 	}
 	infile.close();
+	GlobalGpsStruct GlobalGps;
+	NewParser->getGpsGlobalStruct(GlobalGps);
+	std::cout << "Latitude: "    << GlobalGps.fLatitude     << std::endl;
+	std::cout << "Longitude: "   << GlobalGps.fLongitude    << std::endl;
+	std::cout << "Altitude: "    << GlobalGps.fAltitude     << std::endl;
+	std::cout << "Time: "        << GlobalGps.ulTime        << std::endl;
+	std::cout << "Date: "        << GlobalGps.ulDate        << std::endl;
+	std::cout << "Speed: "       << GlobalGps.fSpeed        << std::endl;
+	std::cout << "Course: "      << GlobalGps.fCourse       << std::endl;
+	std::cout << "Fix Mode: "    << GlobalGps.CeGpsFixMode  << std::endl;
+	std::cout << "SNR: "         << GlobalGps.fGpsSNR       << std::endl;
+	std::cout << "PDOP: "        << GlobalGps.dilution.pdop << std::endl;
+	std::cout << "HDOP: "        << GlobalGps.dilution.hdop << std::endl;
+	std::cout << "VDOP: "        << GlobalGps.dilution.vdop << std::endl;
+
 	delete NewParser;
 	return 0;
 }

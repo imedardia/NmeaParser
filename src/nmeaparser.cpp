@@ -58,7 +58,7 @@ void NmeaParser::ParseGGASentence(std::vector<std::string> &GgaValidData, NmeaPa
 	i+=2;
 	gga_data.geoid = ConvertDoubleDistUnits(GgaValidData[i], GgaValidData[i+1]);
 	if(GgaCallback->NmeapCb != nullptr)
-		GgaCallback->NmeapCb(GgaCallback->NmeaType, &gga_data);
+		GgaCallback->NmeapCb(GgaCallback->NmeaType, &gga_data, GgaCallback->context);
 }
 
 void NmeaParser::ParseRMCSentence(std::vector<std::string> &RmcValidData, NmeaParserCallback * RmcCallback)
@@ -98,17 +98,47 @@ void NmeaParser::ParseRMCSentence(std::vector<std::string> &RmcValidData, NmeaPa
 	rmc_data.magvar = ConvertStrToMagnDev(RmcValidData[i], RmcValidData[i+1]);
 	
 	if(RmcCallback->NmeapCb != nullptr)
-		RmcCallback->NmeapCb(RmcCallback->NmeaType, &rmc_data);
+		RmcCallback->NmeapCb(RmcCallback->NmeaType, &rmc_data, RmcCallback->context);
 }
 
 void NmeaParser::ParseGSASentence(std::vector<std::string> &GsaValidData, NmeaParserCallback * GsaCallback)
 {
+	//$GPGSA,A,3,10,07,05,02,29,04,08,13,,,,,1.72,1.03,1.38*0A
+	/*Where:
+      GSA          GPS Dilution of Precision and Active Satellites
+      A            Mode: Manual or Automatic
+      3            Type of GPS Fix (3D-Fix)
+      07 ... 13    PRN of Active Satellites
+	  1.72         PDOP
+	  1.03         HDOP
+	  1.38         VDOP
+	 */
 	static nmeaparser_gsa_sentence gsa_data;
-	
 	int i = 1;
+	int j = 0;
+	
+	gsa_data.smode = (GsaValidData[i].c_str())[0];
 	i++;
+
+	gsa_data.fs = ConvertStrToInt(GsaValidData[i]);
+	i++;
+	
+	for(j= 0; j < MAX_SATELLITES_USED_FIX; j++) {
+		gsa_data.sv[j] = ConvertStrToInt(GsaValidData[i+j]);
+	}
+
+	i += j;
+	gsa_data.pdop = ConvertStrToDouble(GsaValidData[i]);;
+
+	i++;
+	gsa_data.hdop = ConvertStrToDouble(GsaValidData[i]);;
+	
+	i++;
+	gsa_data.vdop = ConvertStrToDouble(GsaValidData[i]);;
+	
+	
 	if(GsaCallback->NmeapCb != nullptr)
-		GsaCallback->NmeapCb(GsaCallback->NmeaType, &gsa_data);
+		GsaCallback->NmeapCb(GsaCallback->NmeaType, &gsa_data, GsaCallback->context);
 }
 
 void NmeaParser::ParseGSVSentence(std::vector<std::string> &GsvValidData, NmeaParserCallback * GsvCallback)
@@ -161,7 +191,7 @@ void NmeaParser::ParseGSVSentence(std::vector<std::string> &GsvValidData, NmeaPa
 	}
 	
 	if(GsvCallback->NmeapCb != nullptr)
-		GsvCallback->NmeapCb(GsvCallback->NmeaType, &gsv_data);
+		GsvCallback->NmeapCb(GsvCallback->NmeaType, &gsv_data, GsvCallback->context);
 }
 
 void NmeaParser::ParseNmea0183Sentence(std::string GpsFrameData)
@@ -225,7 +255,7 @@ bool NmeaParser::isValidNmeapParser(std::string NmeaType)
 	return false;
 }
 
-bool NmeaParser::addNmea0183Parser(nmea_callback ParserCb, std::string NmeaType)
+bool NmeaParser::addNmea0183Parser(nmea_callback ParserCb, std::string NmeaType, void * tmpcontext)
 {
 	NmeaParserCallback NmeaTmpParser;
 	if((NmeaType.size() == 0) || !isValidNmeapParser(NmeaType) || ParserCb == nullptr)
@@ -233,6 +263,7 @@ bool NmeaParser::addNmea0183Parser(nmea_callback ParserCb, std::string NmeaType)
 		
 	NmeaTmpParser.NmeaType = NmeaType;
 	NmeaTmpParser.NmeapCb = ParserCb;
+	NmeaTmpParser.context = tmpcontext;
 	NmeaParsers.push_back(NmeaTmpParser);
 	return true;
 }
