@@ -2,13 +2,20 @@
 #define __NMEA_PARSER_H__
 
 #include <boost/tokenizer.hpp>
+#include "nmeautils.h"
 
 #define NMEAPARSER_MAX_SENTENCE_LENGTH 255 //MAX Sentence Length in bytes
 #define NMEAPARSER_MAX_TOKENS          24  //Max number of data fields in one GPS Sentence
 #define MAX_SATELLITES_IN_VIEW         64  //Max Number of Stallites In view
 #define MAX_SATELLITES_USED_FIX        12  //Max Number of Stallites Used For Fix
+#define MAX_TXT_MSG_NUMBER             16  //Max Number of GPTXT Messages
 
 typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
+typedef void (*nmea_callback)(std::string NmeaType, void * NmeaStruct);
+typedef struct {
+	std::string NmeaType;
+	nmea_callback NmeapCb;
+}NmeaParserCallback;
 
 enum Nmea0183Frames {
 	NMEAPARSER_GPGGA_ID = 0,
@@ -85,7 +92,7 @@ typedef struct {
 		int		number;
 		int		severity;
 		char	message[NMEAPARSER_MAX_SENTENCE_LENGTH];
-	}id[16];
+	}id[MAX_TXT_MSG_NUMBER];
 }nmeaparser_txt_sentence;
 
 /** VTG Sentence structure */
@@ -101,21 +108,28 @@ typedef struct {
 	int 	fs;
 	int 	sv[MAX_SATELLITES_USED_FIX];
 	float	pdop;
-	float hdop;
-	float vdop;
+	float   hdop;
+	float   vdop;
 }nmeaparser_gsa_sentence;
 
 
-typedef void (*nmea_callback)(std::string NmeaType, void * NmeaStruct);
+class NmeaParser: public NmeaUtils
+{
+	public:
+		NmeaParser();
+		~NmeaParser();
+		bool addNmea0183Parser(nmea_callback ParserCb, std::string NmeaType);
+		void ParseNmea0183Sentence(std::string GpsFrameData);
+		bool isValidSentenceChecksum(std::string s, std::string &GpsData);
 
-typedef struct {
-	std::string NmeaType;
-	nmea_callback NmeapCb;
-}NmeaParserCallback;
-
-bool addNmea0183Parser(nmea_callback ParserCb, std::string NmeaType);
-void ParseNmea0183Sentence(std::string GpsFrameData);
-bool isValidSentenceChecksum(std::string s, std::string &GpsData);
-
+	private:
+		std::vector<NmeaParserCallback> NmeaParsers;
+		void ParseGGASentence(std::vector<std::string> &GgaValidData, NmeaParserCallback * GgaCallback);
+		void ParseRMCSentence(std::vector<std::string> &RmcValidData, NmeaParserCallback * RmcCallback);
+		void ParseGSASentence(std::vector<std::string> &GsaValidData, NmeaParserCallback * GsaCallback);
+		void ParseGSVSentence(std::vector<std::string> &GsvValidData, NmeaParserCallback * GsvCallback);
+		bool isValidNmeapParser(std::string NmeaType);
+	
+};
 
 #endif

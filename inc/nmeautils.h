@@ -9,15 +9,22 @@ enum ConvertField {
 	CONV_TOT
 };
 
-
-
-int ConvertHexStrToInt(std::string csval);
-int ConvertStrToInt(std::string csval);
-double ConvertStrToDouble(std::string csval);
-int CalculateXoRCheckSum(const char * Sentence, int size);
-double ConvertDoubleDistUnits(std::string Value, std::string Units);
-double ConvertStrToLat(std::string Value, std::string Dir);
-double ConvertStrToLon(std::string Value, std::string Dir);
-double ConvertStrToMagnDev(std::string Value, std::string Dir);
+class NmeaUtils
+{
+	public:
+		NmeaUtils();
+		~NmeaUtils();
+		int ConvertHexStrToInt(std::string csval);
+		int ConvertStrToInt(std::string csval);
+		double ConvertStrToDouble(std::string csval);
+		int CalculateXoRCheckSum(const char * Sentence, int size);
+		double ConvertDoubleDistUnits(std::string Value, std::string Units);
+		double ConvertStrToLat(std::string Value, std::string Dir);
+		double ConvertStrToLon(std::string Value, std::string Dir);
+		double ConvertStrToMagnDev(std::string Value, std::string Dir);
+	private:
+		template <ConvertField Conv>
+		double ConvertStrToLatLon(std::string Value, std::string Dir);
+};
 
 #endif

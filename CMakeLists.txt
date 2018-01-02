@@ -2,10 +2,11 @@ cmake_minimum_required(VERSION 2.6)
 project (nmeaparser)
 
 #define Sources and headers
-set (NMEAP_SRC   src/example.cpp
+set (NMEAP_SRC   src/nmeaPres.cpp
 				 src/nmeaparser.cpp
                  src/nmeautils.cpp)
-set (NMEAP_INC   inc/nmeaparser.h
+set (NMEAP_INC   inc/nmeaPres.h
+                 inc/nmeaparser.h
                  inc/nmeautils.h)
 				 
 #include directory

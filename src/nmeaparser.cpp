@@ -5,9 +5,6 @@
 #include <vector>
 #include <cassert>
 #include "nmeaparser.h"
-#include "nmeautils.h"
-
-std::vector<NmeaParserCallback> NmeaParsers;
 
 const char * Nmea0183FramesHdr[NMEAPARSER_MAX_SENTENCES]={
 	"$GPGGA",
@@ -20,7 +17,20 @@ const char * Nmea0183FramesHdr[NMEAPARSER_MAX_SENTENCES]={
 	"$GPZDA",
 };
 
-static void ParseGGASentence(std::vector<std::string> &GgaValidData, NmeaParserCallback * GgaCallback)
+NmeaParser::NmeaParser():
+NmeaUtils()
+{
+	std::cout << "NmeaParser CTOR" << std::endl;
+	NmeaParsers.clear();
+}
+
+NmeaParser::~NmeaParser()
+{
+	std::cout << "NmeaParser DTOR" << std::endl;
+	NmeaParsers.clear();
+}
+
+void NmeaParser::ParseGGASentence(std::vector<std::string> &GgaValidData, NmeaParserCallback * GgaCallback)
 {
 	//$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47
 	static nmeaparser_gga_sentence gga_data;
@@ -51,7 +61,7 @@ static void ParseGGASentence(std::vector<std::string> &GgaValidData, NmeaParserC
 		GgaCallback->NmeapCb(GgaCallback->NmeaType, &gga_data);
 }
 
-static void ParseRMCSentence(std::vector<std::string> &RmcValidData, NmeaParserCallback * RmcCallback)
+void NmeaParser::ParseRMCSentence(std::vector<std::string> &RmcValidData, NmeaParserCallback * RmcCallback)
 {
 	//$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A
 			//123519       Fix taken at 12:35:19 UTC
@@ -91,7 +101,7 @@ static void ParseRMCSentence(std::vector<std::string> &RmcValidData, NmeaParserC
 		RmcCallback->NmeapCb(RmcCallback->NmeaType, &rmc_data);
 }
 
-static void ParseGSASentence(std::vector<std::string> &GsaValidData, NmeaParserCallback * GsaCallback)
+void NmeaParser::ParseGSASentence(std::vector<std::string> &GsaValidData, NmeaParserCallback * GsaCallback)
 {
 	static nmeaparser_gsa_sentence gsa_data;
 	
@@ -101,7 +111,7 @@ static void ParseGSASentence(std::vector<std::string> &GsaValidData, NmeaParserC
 		GsaCallback->NmeapCb(GsaCallback->NmeaType, &gsa_data);
 }
 
-static void ParseGSVSentence(std::vector<std::string> &GsvValidData, NmeaParserCallback * GsvCallback)
+void NmeaParser::ParseGSVSentence(std::vector<std::string> &GsvValidData, NmeaParserCallback * GsvCallback)
 {
 	//$GPGSV,2,1,08,01,40,083,46,02,17,308,41,12,07,344,39,14,22,228,45*75
 	/*Where:
@@ -154,7 +164,7 @@ static void ParseGSVSentence(std::vector<std::string> &GsvValidData, NmeaParserC
 		GsvCallback->NmeapCb(GsvCallback->NmeaType, &gsv_data);
 }
 
-void ParseNmea0183Sentence(std::string GpsFrameData)
+void NmeaParser::ParseNmea0183Sentence(std::string GpsFrameData)
 {
 	std::cout << GpsFrameData << std::endl;
 	boost::char_separator<char> DecSep(",", 0, 
@@ -189,7 +199,7 @@ void ParseNmea0183Sentence(std::string GpsFrameData)
 	}
 }
 
-bool isValidSentenceChecksum(std::string s, std::string &GpsData)
+bool NmeaParser::isValidSentenceChecksum(std::string s, std::string &GpsData)
 {
 	boost::char_separator<char> sep{"*"};
 	tokenizer tokenTmp{s, sep};
@@ -205,7 +215,7 @@ bool isValidSentenceChecksum(std::string s, std::string &GpsData)
 		return false;
 }
 
-static bool isValidNmeapParser(std::string NmeaType)
+bool NmeaParser::isValidNmeapParser(std::string NmeaType)
 {
 	for(int i = 0; i < NMEAPARSER_MAX_SENTENCES; i++) {
 		if(NmeaType == Nmea0183FramesHdr[i]) {
@@ -215,7 +225,7 @@ static bool isValidNmeapParser(std::string NmeaType)
 	return false;
 }
 
-bool addNmea0183Parser(nmea_callback ParserCb, std::string NmeaType)
+bool NmeaParser::addNmea0183Parser(nmea_callback ParserCb, std::string NmeaType)
 {
 	NmeaParserCallback NmeaTmpParser;
 	if((NmeaType.size() == 0) || !isValidNmeapParser(NmeaType) || ParserCb == nullptr)

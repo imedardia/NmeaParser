@@ -6,7 +6,17 @@
 #include <cassert>
 #include "nmeautils.h"
 
-int ConvertHexStrToInt(std::string csval)
+NmeaUtils::NmeaUtils()
+{
+	std::cout << "NmeaUtils CTOR" << std::endl;
+}
+
+NmeaUtils::~NmeaUtils()
+{
+	std::cout << "NmeaUtils DTOR" << std::endl;
+}
+
+int NmeaUtils::ConvertHexStrToInt(std::string csval)
 {
 	if(csval.empty())
 		return 0;
@@ -17,7 +27,7 @@ int ConvertHexStrToInt(std::string csval)
 	return iRes;
 }
 
-int ConvertStrToInt(std::string csval)
+int NmeaUtils::ConvertStrToInt(std::string csval)
 {
 	int iRes = 0;
 	std::stringstream cs(csval);
@@ -25,7 +35,7 @@ int ConvertStrToInt(std::string csval)
 	return iRes;
 }
 
-double ConvertStrToDouble(std::string csval)
+double NmeaUtils::ConvertStrToDouble(std::string csval)
 {
 	double iRes = 0;
 	std::stringstream cs(csval);
@@ -33,7 +43,7 @@ double ConvertStrToDouble(std::string csval)
 	return iRes;
 }
 
-int CalculateXoRCheckSum(const char * Sentence, int size)
+int NmeaUtils::CalculateXoRCheckSum(const char * Sentence, int size)
 {
 	int iXorCS = 0;
 	for(int i = 0; i < size; i++)
@@ -42,7 +52,7 @@ int CalculateXoRCheckSum(const char * Sentence, int size)
 }
 
 template <ConvertField Conv>
-double ConvertStrToLatLon(std::string Value, std::string Dir)
+double NmeaUtils::ConvertStrToLatLon(std::string Value, std::string Dir)
 {
 	double dLatLon, dMin;
 	int iDeg;
@@ -68,24 +78,24 @@ double ConvertStrToLatLon(std::string Value, std::string Dir)
 	return dLatLon;
 }
 
-double ConvertStrToLat(std::string Value, std::string Dir)
+double NmeaUtils::ConvertStrToLat(std::string Value, std::string Dir)
 {
 	return ConvertStrToLatLon<CONV_LAT>(Value, Dir);
 }
 
-double ConvertStrToLon(std::string Value, std::string Dir)
+double NmeaUtils::ConvertStrToLon(std::string Value, std::string Dir)
 {
 	return ConvertStrToLatLon<CONV_LON>(Value, Dir);
 }
 
-double ConvertStrToMagnDev(std::string Value, std::string Dir)
+double NmeaUtils::ConvertStrToMagnDev(std::string Value, std::string Dir)
 {
 	int iDir = (Dir == "E")? 1: -1;
 	double MagnVar = ConvertStrToDouble(Value)*iDir;
 	return MagnVar;
 }
 
-double ConvertDoubleDistUnits(std::string Value, std::string Units)
+double NmeaUtils::ConvertDoubleDistUnits(std::string Value, std::string Units)
 {
 	if(Value.length() == 0)
 		return 0.0;
