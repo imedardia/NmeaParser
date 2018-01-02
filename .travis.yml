@@ -3,8 +3,8 @@ language: cpp
 compiler:
   - clang
   - g++
-
-install: export CXX="g++-5"
+os:
+  - linux
      
 addons:
   apt:
@@ -17,6 +17,13 @@ addons:
       - libboost1.55-all-dev
       - cmake-data
       - cmake
+
+before_script:  
+  - mkdir build
+  - cd build
+  - cmake ..
+
+script: make
       
 notifications:
  email:
