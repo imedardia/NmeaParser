@@ -6,8 +6,8 @@
 
 #define NMEAPARSER_MAX_SENTENCE_LENGTH 255 //MAX Sentence Length in bytes
 #define NMEAPARSER_MAX_TOKENS          24  //Max number of data fields in one GPS Sentence
-#define MAX_SATELLITES_IN_VIEW         64  //Max Number of Stallites In view
-#define MAX_SATELLITES_USED_FIX        12  //Max Number of Stallites Used For Fix
+#define MAX_SATELLITES_IN_VIEW         64  //Max Number of Satellites In view
+#define MAX_SATELLITES_USED_FIX        12  //Max Number of Satellites Used For Fix
 #define MAX_TXT_MSG_NUMBER             16  //Max Number of GPTXT Messages
 
 typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
